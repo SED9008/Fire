@@ -29,6 +29,7 @@ class FireDetection:
 		# Create grayscale mask for the purpose of contour/blob detection
 		mask_gray = cv2.bitwise_and(blank, blank, mask = mask_hsv)
 
+		fire = False
 		''' Detection '''
 		if mode == 'blobs':
 			blob_params = cv2.SimpleBlobDetector_Params()
@@ -41,6 +42,7 @@ class FireDetection:
 			if len(keypoints) > 0:
 				for keypoint in keypoints:
 					if keypoint.size > area:
+						fire = True
 						x,y = keypoint.pt
 						img = cv2.circle(img, (int(x),int(y)), int(keypoint.size)*3, (0,255,0), 5)
 						masked_rgb = cv2.circle(masked_rgb, (int(x),int(y)), int(keypoint.size)*3, (0,255,0), 5)
@@ -50,10 +52,16 @@ class FireDetection:
 			if len(contours) > 0:
 				for contour in contours:
 					if cv2.contourArea(contour) > self.area_contour:
+						fire = True
 						x,y,w,h = cv2.boundingRect(contour)
 						img = cv2.rectangle(img, (x-w,y-h),(x+(w*2),y+(h*2)),(0,255,0),3)
 						masked_rgb = cv2.rectangle(masked_rgb, (x-w,y-h),(x+(w*2),y+(h*2)),(0,255,0),3)
+						
+		if fire:
+			cv2.putText(img, 'Flame Detected',(10,30), cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),6,cv2.LINE_AA)
+			cv2.putText(masked_rgb, 'Fire Detected',(10,30), cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),6,cv2.LINE_AA)	
+			cv2.putText(img, 'Flame Detected',(10,30), cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),2,cv2.LINE_AA)
+			cv2.putText(masked_rgb, 'Flame Detected',(10,30), cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),2,cv2.LINE_AA)
 		
-
 		return img, masked_rgb
 
