@@ -36,15 +36,15 @@ while(key != ord('q')):
 		
 		if frame == 'rgb':
 			# Resize so the image isn't too big could do this at the end - camera(stream) specific
-			img_res = pre.scale(frames[frame], 0.35)
+			rgb_res = pre.scale(frames[frame], 0.35)
 
 			# Initialize Fire detection module
 			FD = FireDetection()
 			# Detect flames on a RGB image using contour mode
-			img_det, mask_det = FD.detectFlamesRGB(img_res, 'contours')
+			rgb_det, rgb_mask = FD.detectFlamesRGB(rgb_res, 'contours')
 
 			# Combine the two images for better comparison
-			comp = np.concatenate((img_det,mask_det),axis=1)
+			comp = np.concatenate((rgb_det,rgb_mask),axis=1)
 			cv2.imshow('compare',comp)
 
 			# Check for key input
