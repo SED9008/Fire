@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-class FireDetection:
+class RGBDetector:
 	def __init__(self):
 		# Lower and upper HSV mask boundaries for detecting flame pixels
 		self.lower_h = 1
@@ -16,7 +16,7 @@ class FireDetection:
 		self.area_blob = 3
 		self.area_contour = 100
 
-	def detectFlamesRGB(self, img, mode):
+	def detectFlames(self, img, mode):
 		''' Pre Processing '''
 		img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
@@ -79,3 +79,5 @@ class FireDetection:
 		
 		return img, masked_rgb
 
+
+		

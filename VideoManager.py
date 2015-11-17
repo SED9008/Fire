@@ -6,10 +6,12 @@ class VideoManager:
 
 	def addStream(self, name, filename):
 		self.videos[name] = cv2.VideoCapture(filename)
+		print(self.videos[name].get(5))
 
 	def getFrame(self, video):
 		ret, frame = self.videos[video].read()
 		if not ret:
+			print('Error in retreiving frame from:', video)
 			return False
 		return frame
 
