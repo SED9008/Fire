@@ -47,7 +47,7 @@ class RGBDetector:
 			if len(keypoints) > 0:
 				for keypoint in keypoints:
 					# Apply area threshold to avoid false positives (noise)
-					if keypoint.size > area:
+					if keypoint.size > self.area_blob:
 						fire = True
 						# Get the position of the blob
 						x,y = keypoint.pt
@@ -79,5 +79,64 @@ class RGBDetector:
 		
 		return img, masked_rgb
 
+class SWIRDetector:
+	def __init__(self):
+		self.lower = 220
+		self.higher = 255
 
-		
+		self.area_blob = 2
+		self.area_contour = 200
+
+	def detectHeat(self, img, mode):
+		img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+		''' Feature extraction '''
+		# Create the mask so only yellow and red and high saturation and values are passed (qualities of fire)
+		mask = cv2.inRange(img_gray, self.lower, self.higher)
+		# Mask the area on the RGB image
+		masked = cv2.bitwise_and(img, img, mask = mask)
+		# # Create white picture grayscale for the purpose of countour/blob detection
+		# blank = np.full(mask.shape, 255, np.uint8)
+		# # Create grayscale mask for the purpose of contour/blob detection
+		# mask_gray = cv2.bitwise_and(blank, blank, mask = mask)
+
+		''' Detection '''
+		# Fire bool for text and later on high lvl decision making
+		fire = False
+		# Blob detection on the HSV fire regions
+		if mode == 'blobs':
+			blob_params = cv2.SimpleBlobDetector_Params()
+			# Filter by Area.
+			blob_params.filterByArea = True
+			blob_params.minArea = self.area_blob
+			# print(blob_params)
+			detector = cv2.SimpleBlobDetector_create(blob_params)
+			keypoints = detector.detect(mask)
+			if len(keypoints) > 0:
+				for keypoint in keypoints:
+					print(keypoint.size)
+					# Apply area threshold to avoid false positives (noise)
+					if keypoint.size > self.area_blob:
+						fire = True
+						# Get the position of the blob
+						x,y = keypoint.pt
+						# Draw a circle around the blob on the original and the mask image
+						img = cv2.circle(img, (int(x),int(y)), int(keypoint.size)*3, (0,255,0), 5)
+						masked = cv2.circle(masked, (int(x),int(y)), int(keypoint.size)*3, (0,255,0), 5)
+
+		# Contour detection on the HSV fire regions
+		elif mode == 'contours':
+			# Detect contours
+			img_cnt, contours, hierarchy = cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)	
+			if len(contours) > 0:
+				for contour in contours:
+					# Apply area threshold to avoid false positives (noise)
+					if cv2.contourArea(contour) > self.area_contour:
+						fire = True
+						# Get the position and size of the contour bounding box
+						x,y,w,h = cv2.boundingRect(contour)
+						# Draw the boundingboxes on the original and the mask image
+						img = cv2.rectangle(img, (x,y),(int(x+(w*1)),int(y+(h*1))),(0,255,0),3)
+						masked = cv2.rectangle(masked, (x,y),(int(x+(w*1)),int(y+(h*1))),(0,255,0),3)
+
+		return img, masked

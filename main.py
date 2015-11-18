@@ -20,28 +20,28 @@ vm = VideoManager()
 vm.addStream('rgb', 'media/rgb.mp4')
 vm.addStream('swir', 'media/swir.mp4')
 
-# img = cv2.imread('media/flame.png')
-
 # Time measuring snippit
 # t0 = time.time()
 # print('Preprocessing: ',round(time.time() - t0, 3), 's')
 
-frames = vm.getFrames()
-i = 0
-while(i < 200):
-	name = 'swir'
-	frames[name] = vm.getFrame(name)
-	i += 1
+# Syncing snipped for skipping frames
+# frames = vm.getFrames()
+# i = 0
+# while(i < 200):
+# 	name = 'swir'
+# 	frames[name] = vm.getFrame(name)
+# 	i += 1
 
 key = 0
 wait = 1
 scale = 0.35
 while(key != ord('q')):
+	''' Image Acquisition '''
 	frames = vm.getFrames()
-
 	if not frames:
 		break
 
+	# Get X & Y values of the largest picture for scaling purposes
 	high_x = [0,'']
 	high_y = [0,'']
 	for frame in frames:
@@ -54,6 +54,7 @@ while(key != ord('q')):
 
 	for frame in frames:
 		if frame == 'rgb':
+			''' Preprocessing '''
 			if frames[frame].shape[0] > frames[frame].shape[1]:
 				# Resize so the image isn't too big could do this at the end - camera(stream) specific
 				rgb_res = pre.scale(frames[frame], high_x[0]/frames[frame].shape[0]*scale)
@@ -61,10 +62,11 @@ while(key != ord('q')):
 				# Resize so the image isn't too big could do this at the end - camera(stream) specific
 				rgb_res = pre.scale(frames[frame], high_y[0]/frames[frame].shape[1]*scale)
 
+			''' Detection '''
 			# Initialize Fire detection module
-			FD = RGBDetector()
+			RGB = RGBDetector()
 			# Detect flames on a RGB image using contour mode
-			rgb_det, rgb_mask = FD.detectFlames(rgb_res, 'contours')
+			rgb_det, rgb_mask = RGB.detectFlames(rgb_res, 'contours')
 
 			frames[frame] = rgb_det
 			# # Combine the two images for better comparison
@@ -102,23 +104,40 @@ while(key != ord('q')):
 			else:
 				# Resize so the image isn't too big could do this at the end - camera(stream) specific
 				swir_res = pre.scale(frames[frame], high_y[0]/frames[frame].shape[1]*scale)
+			
+			# swir_gray = cv2.cvtColor(swir_res, cv2.COLOR_BGR2GRAY)
+
 			frames[frame] = swir_res
 
+			SWIR = SWIRDetector()
+			swir_det, swir_mask = SWIR.detectHeat(swir_res , 'contours')
+
+			# Combine the two images for better comparison
+			comp = np.concatenate((swir_det,swir_mask),axis=1)
+			cv2.imshow('compare',comp)
+
+			# Check for key input
+			key = cv2.waitKey(wait) & 0xFF
+			wait = 1
+			# Pause the program if the key 'p' is pressed
+			if key == ord('p'):
+				wait = 0
 
 
 
-	# Create white picture grayscale for the purpose of countour/blob detection
-	blank = np.full(frames['rgb'].shape, 0, np.uint8)
-	blank[0:frames['swir'].shape[0],0:frames['swir'].shape[1]] = frames['swir']
-	comp = np.concatenate((frames['rgb'],blank),axis=1)
-	# comp = pre.scale(comp, 0.35)
-	cv2.imshow('compare',comp)
-	# # Check for key input
-	key = cv2.waitKey(wait) & 0xFF
-	wait = 1
-	# Pause the program if the key 'p' is pressed
-	if key == ord('p'):
-		wait = 0
+
+	# # Create white picture grayscale for the purpose of countour/blob detection
+	# blank = np.full(frames['rgb'].shape, 0, np.uint8)
+	# blank[0:frames['swir'].shape[0],0:frames['swir'].shape[1]] = frames['swir']
+	# comp = np.concatenate((frames['rgb'],blank),axis=1)
+	# # comp = pre.scale(comp, 0.35)
+	# cv2.imshow('compare',comp)
+	# # # Check for key input
+	# key = cv2.waitKey(wait) & 0xFF
+	# wait = 1
+	# # Pause the program if the key 'p' is pressed
+	# if key == ord('p'):
+	# 	wait = 0
 
 ''' Closing the video streams '''
 vm.close()
