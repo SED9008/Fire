@@ -74,8 +74,8 @@ class RGBDetector:
 			# Draw readable text on the original and mask image
 			cv2.putText(img, 'Flame Detected',(10,30), cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),6,cv2.LINE_AA)
 			cv2.putText(masked_rgb, 'Fire Detected',(10,30), cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),6,cv2.LINE_AA)	
-			cv2.putText(img, 'Flame Detected',(10,30), cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),2,cv2.LINE_AA)
-			cv2.putText(masked_rgb, 'Flame Detected',(10,30), cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),2,cv2.LINE_AA)
+			cv2.putText(img, 'Flame Detected',(10,30), cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2,cv2.LINE_AA)
+			cv2.putText(masked_rgb, 'Flame Detected',(10,30), cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2,cv2.LINE_AA)
 		
 		return img, masked_rgb
 
@@ -138,5 +138,12 @@ class SWIRDetector:
 						# Draw the boundingboxes on the original and the mask image
 						img = cv2.rectangle(img, (x,y),(int(x+(w*1)),int(y+(h*1))),(0,255,0),3)
 						masked = cv2.rectangle(masked, (x,y),(int(x+(w*1)),int(y+(h*1))),(0,255,0),3)
+
+		if fire:
+			# Draw readable text on the original and mask image
+			cv2.putText(img, 'Heat Detected',(10,30), cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),6,cv2.LINE_AA)
+			cv2.putText(masked, 'Heat Detected',(10,30), cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),6,cv2.LINE_AA)	
+			cv2.putText(img, 'Heat Detected',(10,30), cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2,cv2.LINE_AA)
+			cv2.putText(masked, 'Heat Detected',(10,30), cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2,cv2.LINE_AA)
 
 		return img, masked
