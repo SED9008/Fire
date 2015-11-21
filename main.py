@@ -9,7 +9,7 @@ from VideoManager import VideoManager
 from PreProcessing import PreProcessing as pre
 from FireDetection import *
 
-SCALE = 0.26
+SCALE = 0.2
 
 # Specify streams
 streams = {	'rgb':{		
@@ -70,28 +70,23 @@ while(True):
 			flir_det, flir_mask = FLIR.detectHeat(streams[stream]['frame'], 'contours')
 			streams[stream]['frame'] = flir_det
 
-	if overlay:
-		blank = np.full((streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[1]*2,3), 0, np.uint8)
-		blank[0:streams['swir']['frame'].shape[0],0:streams['swir']['frame'].shape[1]] = swir_mask
-		# blank[0:streams['flir']['frame'].shape[0],0:streams['flir']['frame'].shape[1]] = flir_mask
-		blank[0:streams['flir']['frame'].shape[0],streams['swir']['frame'].shape[1]:streams['flir']['frame'].shape[1]*2] = flir_mask
-		comp = np.concatenate((rgb_mask,blank),axis=1)
-		cv2.imshow('Fire detection',comp)
-	else:
-		blank = np.full((streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[1]*2,3), 0, np.uint8)
-		blank[0:streams['swir']['frame'].shape[0],0:streams['swir']['frame'].shape[1]] = streams['swir']['frame']
-		# blank[0:streams['flir']['frame'].shape[0],0:streams['flir']['frame'].shape[1]] = flir_mask
-		blank[0:streams['flir']['frame'].shape[0],streams['swir']['frame'].shape[1]:streams['flir']['frame'].shape[1]*2] = streams['flir']['frame']
-		comp = np.concatenate((streams['rgb']['frame'],blank),axis=1)
-		cv2.imshow('Fire detection',comp)
+
+	blank = np.full((streams['rgb']['frame'].shape[0]*2,streams['rgb']['frame'].shape[1]*3,3), 0, np.uint8)
+	blank[0:streams['rgb']['frame'].shape[0],0:streams['rgb']['frame'].shape[1]] 																										= streams['rgb']['frame']
+	blank[streams['rgb']['frame'].shape[0]:streams['rgb']['frame'].shape[0]*2,0:streams['rgb']['frame'].shape[1]] 																		= rgb_mask
+
+	blank[0:streams['swir']['frame'].shape[0],streams['rgb']['frame'].shape[1]:streams['swir']['frame'].shape[1]*2] 																	= streams['swir']['frame']
+	blank[streams['rgb']['frame'].shape[0]:streams['swir']['frame'].shape[0]+streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[1]:streams['swir']['frame'].shape[1]*2] 	= swir_mask
+
+	blank[0:streams['flir']['frame'].shape[0],streams['rgb']['frame'].shape[1]*2:streams['flir']['frame'].shape[1]*3] 																	= streams['flir']['frame']
+	blank[streams['rgb']['frame'].shape[0]:streams['flir']['frame'].shape[0]+streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[1]*2:streams['flir']['frame'].shape[1]*3] 	= flir_mask
+	cv2.imshow('Fire detection',blank)
 
 	key = cv2.waitKey(wait) & 0xFF
 	if key == ord('p'):
 		wait = 0
 	elif key == ord('q'):
 		break	
-	elif key == ord('o'):
-		overlay = not overlay
 	elif key == 81:
 		#slower
 		print('slower', wait)
