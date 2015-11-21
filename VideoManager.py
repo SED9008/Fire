@@ -19,12 +19,8 @@ class VideoManager:
 		return frame
 
 	def skipFrame(self, video, amount):
-		print('Skipping', amount, video,'frames')
-		for i in range(0,amount):
-			self.videos[video].grab()
-		ret, frame = self.videos[video].read()
-		return frame
-
+		print('Setting', video,'starting point at', amount, 'frames.')
+		self.videos[video].set(cv2.CAP_PROP_POS_FRAMES,amount)
 
 	def close(self):
 		for video in self.videos:
