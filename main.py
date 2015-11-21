@@ -37,69 +37,78 @@ for stream in streams:
 	streams[stream]['frame'] = vm.getFrame(stream)
 	streams[stream]['frame'] = pre.scale(streams[stream]['frame'], streams[stream]['scale'])
 
+# Initialize detectors
+RGB 	= RGBDetector()
+SWIR 	= SWIRDetector()
+FLIR 	= SWIRDetector()
+
 
 # Initial values
-wait = 1
+wait 	= 1
+speed 	= 1
+overlay = False
 while(True):
 	for stream in streams:
 		streams[stream]['frame'] 	= vm.getFrame(stream) 
-		
-
 		if stream == 'rgb':
 			streams[stream]['frame']	= pre.scale(streams[stream]['frame'], streams[stream]['scale'])
-
-			# Initialize Fire detection module
-			RGB = RGBDetector()
 			# Detect flames on a RGB image using contour mode
 			rgb_det, rgb_mask = RGB.detectFlames(streams[stream]['frame'], 'contours')
-
 			streams[stream]['frame'] = rgb_det
 
 		elif stream == 'swir':
 			streams[stream]['frame']	= pre.scale(streams[stream]['frame'], streams[stream]['scale'])
-			# Initialize Fire detection module
-			SWIR = SWIRDetector()
 			# Detect heat on a RGB image using contour mode
 			swir_det, swir_mask = SWIR.detectHeat(streams[stream]['frame'] , 'contours')
-
 			streams[stream]['frame'] = swir_det
-			
+
 		elif stream == 'flir':
 			streams[stream]['frame']	= pre.scale(streams[stream]['frame'], streams[stream]['scale'])
 			# Cut off level indicator bar
 			streams[stream]['frame'] = streams[stream]['frame'][0:streams[stream]['frame'].shape[0]-30,0:streams[stream]['frame'].shape[1]]
+			# Detect heat on a RGB image using contour mode
+			flir_det, flir_mask = FLIR.detectHeat(streams[stream]['frame'], 'contours')
+			streams[stream]['frame'] = flir_det
 
-	blank = np.full((streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[1]*2,3), 0, np.uint8)
-	blank[0:streams['swir']['frame'].shape[0],0:streams['swir']['frame'].shape[1]] = streams['swir']['frame']
-	blank[0:streams['flir']['frame'].shape[0],streams['swir']['frame'].shape[1]:streams['flir']['frame'].shape[1]*2] = streams['flir']['frame']
-	comp = np.concatenate((streams['rgb']['frame'],blank),axis=1)
-	cv2.imshow('test',comp)
+	if overlay:
+		blank = np.full((streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[1]*2,3), 0, np.uint8)
+		blank[0:streams['swir']['frame'].shape[0],0:streams['swir']['frame'].shape[1]] = swir_mask
+		# blank[0:streams['flir']['frame'].shape[0],0:streams['flir']['frame'].shape[1]] = flir_mask
+		blank[0:streams['flir']['frame'].shape[0],streams['swir']['frame'].shape[1]:streams['flir']['frame'].shape[1]*2] = flir_mask
+		comp = np.concatenate((rgb_mask,blank),axis=1)
+		cv2.imshow('Fire detection',comp)
+	else:
+		blank = np.full((streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[1]*2,3), 0, np.uint8)
+		blank[0:streams['swir']['frame'].shape[0],0:streams['swir']['frame'].shape[1]] = streams['swir']['frame']
+		# blank[0:streams['flir']['frame'].shape[0],0:streams['flir']['frame'].shape[1]] = flir_mask
+		blank[0:streams['flir']['frame'].shape[0],streams['swir']['frame'].shape[1]:streams['flir']['frame'].shape[1]*2] = streams['flir']['frame']
+		comp = np.concatenate((streams['rgb']['frame'],blank),axis=1)
+		cv2.imshow('Fire detection',comp)
+
 	key = cv2.waitKey(wait) & 0xFF
 	if key == ord('p'):
 		wait = 0
 	elif key == ord('q'):
 		break	
+	elif key == ord('o'):
+		overlay = not overlay
+	elif key == 81:
+		#slower
+		print('slower', wait)
+		if wait < 1000:
+			speed 	= speed*2
+			wait 	= speed
+			print(wait)
+	elif key == 83:
+		#faster
+		print('faster', wait)
+		if wait > 1:
+			speed 	= int(speed/2)
+			wait 	= speed
+			print(wait)
 	else:
-		wait = 1
+		wait = speed
 
-
-
-# while(True):
-
-# 	test_frame = vm.getFrame('swir')
-
-
-
-# 	cv2.imshow('test',test_frame)
-
-# 	key = cv2.waitKey(wait) & 0xFF
-
-# 	wait = default_wait / speed
-
-# 	if key == ord('p'):
-# 		wait = 0
-# 	if key == ord('q'):
-# 		break
 
 vm.close()
 cv2.destroyAllWindows()
