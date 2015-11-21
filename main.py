@@ -80,6 +80,17 @@ while(True):
 
 	blank[0:streams['flir']['frame'].shape[0],streams['rgb']['frame'].shape[1]*2:streams['flir']['frame'].shape[1]*3] 																	= streams['flir']['frame']
 	blank[streams['rgb']['frame'].shape[0]:streams['flir']['frame'].shape[0]+streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[1]*2:streams['flir']['frame'].shape[1]*3] 	= flir_mask
+
+	cv2.putText(blank, 'Original images',						(blank.shape[1]-190,int(blank.shape[0]/2)-45), 	cv2.FONT_HERSHEY_SIMPLEX,0.75,(0,255,0),	2,cv2.LINE_AA)
+	cv2.putText(blank, 'Speed: '+ str(round((1/speed)*1000)),	(blank.shape[1]-190,int(blank.shape[0]/2)-15),	cv2.FONT_HERSHEY_SIMPLEX,0.75,(255,255,255),2,cv2.LINE_AA)
+	cv2.putText(blank, 'Mask images',							(blank.shape[1]-190,blank.shape[0]-45), 		cv2.FONT_HERSHEY_SIMPLEX,0.75,(255,0,0),	2,cv2.LINE_AA)
+	cv2.putText(blank, 'Speed: '+ str(round((1/speed)*1000)),	(blank.shape[1]-190,blank.shape[0]-15), 		cv2.FONT_HERSHEY_SIMPLEX,0.75,(255,255,255),2,cv2.LINE_AA)
+	
+	cv2.rectangle(blank,(streams['rgb']['frame'].shape[0],0),									(streams['rgb']['frame'].shape[0]*2,int(blank.shape[0]/2)-1),	(0,255,0),	2)
+	cv2.rectangle(blank,(0,0),																	(blank.shape[1]-1,int(blank.shape[0]/2)-1),						(0,255,0),	2)
+	cv2.rectangle(blank,(streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[0]+1),	(streams['rgb']['frame'].shape[0]*2,int(blank.shape[0]-1)),		(255,0,0),	2)
+	cv2.rectangle(blank,(0,streams['rgb']['frame'].shape[0]+1),									(blank.shape[1]-1,blank.shape[0]-1),							(255,0,0),	2)
+
 	cv2.imshow('Fire detection',blank)
 
 	key = cv2.waitKey(wait) & 0xFF
