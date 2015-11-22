@@ -49,7 +49,7 @@ FLIR 	= SWIRDetector()
 # Initial values
 wait 		= 1
 speed 		= 1
-mask_overlay= True
+mask_overlay= False
 frame_index = 1
 
 while(True):
@@ -100,6 +100,7 @@ while(True):
 
 	cv2.imshow('Fire detection',blank)
 
+	# Section that handles al different key presses
 	key = cv2.waitKey(wait) & 0xFF
 	if key == ord('p'):
 		wait = 0
