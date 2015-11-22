@@ -18,9 +18,12 @@ class VideoManager:
 			return False
 		return frame
 
-	def skipFrame(self, video, amount):
-		print('Setting', video,'starting point at', amount, 'frames.')
-		self.videos[video].set(cv2.CAP_PROP_POS_FRAMES,amount)
+	def setFrameIndex(self, video, index):
+		print('Setting', video,'frame index at', index)
+		self.videos[video].set(cv2.CAP_PROP_POS_FRAMES, index)
+
+	def getFrameIndex(self, video):
+		return self.videos[video].get(cv2.CAP_PROP_POS_FRAMES)
 
 	def close(self):
 		for video in self.videos:
