@@ -15,8 +15,7 @@ class VideoManager:
 		ret, frame = self.videos[video].read()
 		if not ret:
 			print('Error in retreiving frame from:', video)
-			return False
-		return frame
+		return ret, frame
 
 	def setFrameIndex(self, video, index):
 		print('Setting', video,'frame index at', index)
