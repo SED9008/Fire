@@ -16,7 +16,7 @@ from Colors import bgr
 
 bgr = bgr()
 
-SCALE = 0.2
+SCALE = 0.25
 
 # Specify streams
 
@@ -119,7 +119,7 @@ while(run):
 					blank[streams['rgb']['frame'].shape[0]:streams['swir']['frame'].shape[0]+streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[1]:streams['swir']['frame'].shape[1]*2] 	= swir_mask
 					blank[streams['rgb']['frame'].shape[0]:streams['flir']['frame'].shape[0]+streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[1]*2:streams['flir']['frame'].shape[1]*3] 	= flir_mask
 					cv2.putText(blank, 'Speed: '+ str(round((1/speed)*1000)),	(blank.shape[1]-160,int(blank.shape[0]/2)-15),	cv2.FONT_HERSHEY_SIMPLEX,0.75,bgr.white,2,cv2.LINE_AA)
-					cv2.rectangle(blank,(streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[0]+1),	(streams['rgb']['frame'].shape[0]*2,int(blank.shape[0]+1)),		bgr.white,	2)
+					cv2.rectangle(blank,(streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[0]+1),	(streams['rgb']['frame'].shape[0]*2,int(blank.shape[0]+1)),		bgr.white,	1)
 					test = 1
 				else:
 					blank = np.full((streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[1]*3,3), 0, np.uint8)
@@ -129,9 +129,9 @@ while(run):
 				blank[0:streams['swir']['frame'].shape[0],streams['rgb']['frame'].shape[1]:streams['swir']['frame'].shape[1]*2] 	= streams['swir']['frame']
 				blank[0:streams['flir']['frame'].shape[0],streams['rgb']['frame'].shape[1]*2:streams['flir']['frame'].shape[1]*3] 	= streams['flir']['frame']
 				
-				cv2.rectangle(blank,(streams['rgb']['frame'].shape[0],-2),	(streams['rgb']['frame'].shape[0]*2,int(streams['rgb']['frame'].shape[0])+1), bgr.white, 2)
+				cv2.rectangle(blank,(streams['rgb']['frame'].shape[0],-2),	(streams['rgb']['frame'].shape[0]*2,int(streams['rgb']['frame'].shape[0])+1), bgr.white, 1)
 				# Middle line change this to a line! no rectangle necessary
-				cv2.rectangle(blank,(-2,streams['rgb']['frame'].shape[0]+1),(blank.shape[1]+1,blank.shape[0]+1), bgr.white,	2)
+				cv2.rectangle(blank,(-2,streams['rgb']['frame'].shape[0]+1),(blank.shape[1]+1,blank.shape[0]+1), bgr.white,	1)
 
 				cv2.imshow('Fire detection',blank)
 

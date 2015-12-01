@@ -8,10 +8,10 @@ class RGBDetector:
 	def __init__(self):
 		# Lower and upper HSV mask boundaries for detecting flame pixels
 		self.lower_h = 1
-		self.lower_s = 50
+		self.lower_s = 220
 		self.lower_v = 230
 
-		self.upper_h = 30
+		self.upper_h = 50
 		self.upper_s = 255
 		self.upper_v = 255
 
@@ -25,7 +25,7 @@ class RGBDetector:
 
 		''' Feature extraction '''
 		# # Create the mask so only yellow and red and high saturation and values are passed (qualities of fire)
-		mask_hsv 	= cv2.inRange(img, np.array([self.lower_h,self.lower_s,self.lower_v]), np.array([self.upper_h,self.upper_s,self.upper_v]))
+		mask_hsv 	= cv2.inRange(img_hsv, np.array([self.lower_h,self.lower_s,self.lower_v]), np.array([self.upper_h,self.upper_s,self.upper_v]))
 		# Mask the area on the RGB image
 		masked 		= cv2.bitwise_and(img, img, mask = mask_hsv)
 		# Create white picture grayscale for the purpose of countour/blob detection
@@ -70,8 +70,8 @@ class RGBDetector:
 						# Get the position and size of the contour bounding box
 						x,y,w,h = cv2.boundingRect(contour)
 						# Draw the boundingboxes on the original and the mask image
-						img 	= cv2.rectangle(img, 	(x-w,y-h),(x+(w*2),y+(h*2)),bgr.green,2)
-						masked 	= cv2.rectangle(masked, (x-w,y-h),(x+(w*2),y+(h*2)),bgr.green,2)
+						img 	= cv2.rectangle(img, 	(x-int(w/2),y-int(h/2)),(x+w,y+h),bgr.green,2)
+						masked 	= cv2.rectangle(masked, (x-int(w/2),y-int(h/2)),(x+w,y+h),bgr.green,2)
 		
 		if fire:
 			text_color = bgr.red
