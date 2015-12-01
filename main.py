@@ -160,7 +160,7 @@ while(run):
 					if frame_index > 1:
 						frame_index -= 2
 					for stream in streams:
-						# Very slow .. don't know why
+						# Very slow .. openCV problem?
 						vm.setFrameIndex(stream, streams[stream]['offset']+frame_index)
 					wait = 0
 				elif key == 83:
