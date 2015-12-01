@@ -1,5 +1,6 @@
 import cv2
 
+
 class VideoManager:
 	def __init__(self):
 		self.videos = {}
@@ -9,7 +10,7 @@ class VideoManager:
 		if self.videos[name]:
 			print('Opened video:', name)
 		else:
-			print('Something went wrong while opening', name)
+			print('Something went wrong while opening', filename)
 
 	def getFrame(self, video):
 		ret, frame = self.videos[video].read()

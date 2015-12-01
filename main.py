@@ -14,16 +14,17 @@ from PreProcessing import PreProcessing as pre
 from FireDetection import *
 from Colors import bgr
 
+# Some bgr color code simplifications
 bgr = bgr()
 
+# Subjective scale value
 SCALE = 0.2
 
 # Specify streams
-
 videosets	=	{
 				'slaapkamer': 	{	
-								'rgb':{		
-									'filename':'media/rgb_slaapkamer_1fps.mp4',
+								'color':{		
+									'filename':'media/color_slaapkamer_1fps.mp4',
 									'scale':SCALE,
 									'offset':34,
 									}, 
@@ -39,8 +40,8 @@ videosets	=	{
 									},
 								},
 				'kelder':		{	
-								'rgb':{		
-									'filename':'media/rgb_kelder_1fps.mp4',
+								'color':{		
+									'filename':'media/color_kelder_1fps.mp4',
 									'scale':SCALE,
 									'offset':8,
 									}, 
@@ -57,118 +58,214 @@ videosets	=	{
 								}
 				}
 
-# Initial values
-wait 			= 1
-speed 			= 1
-mask_overlay	= False
-run 			= True
+# Select a videoset
+streams = videosets['kelder']
+
+# Create the videomanager
+vm = VideoManager()
+
+detectors = {}
+
+# Sync up streams by changing the frameindex to certain streams 
+for stream in streams:
+	# Add a videostream
+	vm.addStream(stream, streams[stream]['filename'])
+	# Set the frame index for syncing purposes
+	vm.setFrameIndex(stream, streams[stream]['offset'])
+	# Create the corrosponding detectors
+	detectors[stream] = FireDetector(stream)
+
+
+
+run 	= True
+mask 	= False
+wait 	= 1
+speed 	= 1
 
 while(run):
-	for videoset in videosets:
-		streams = videosets[videoset]
-		# Create the videomanager
-		vm = VideoManager()
+	for stream in streams:
+		ret, streams[stream]['frame'] = vm.getFrame(stream)
 
-		# Sync up streams by skipping frames
-		for stream in streams:
-			vm.addStream(stream, streams[stream]['filename'])
-			vm.setFrameIndex(stream, streams[stream]['offset'])
+		if ret:
+			if stream == 'flir':
+				# Cut off level indicator bar
+				streams[stream]['frame'] = streams[stream]['frame'][0:streams[stream]['frame'].shape[0]-30,0:streams[stream]['frame'].shape[1]]
+			# Scale images to a reasonable size
+			streams[stream]['frame'] = pre.scale(streams[stream]['frame'], streams[stream]['scale'])
+			# Detect fire, returns the mask for development purposes
+			fire, streams[stream]['frame'], streams[stream]['mask']	= detectors[stream].detect(streams[stream]['frame'])
 
-		# Initialize detectors
-		RGB 	= RGBDetector()
-		SWIR 	= SWIRDetector()
-		FLIR 	= SWIRDetector()
-
-
-		frame_index 	= 1
-
-		while(run):
-			for stream in streams:
-				
-				ret, streams[stream]['frame'] 	= vm.getFrame(stream) 
-
-				if ret:
-					if stream == 'rgb':
-						streams[stream]['frame']	= pre.scale(streams[stream]['frame'], streams[stream]['scale'])
-						# Detect flames on a RGB image using contour mode
-						flame, rgb_det, rgb_mask 	= RGB.detectFlames(streams[stream]['frame'], stream,'contours')
-						streams[stream]['frame'] 	= rgb_det
-
-					elif stream == 'swir':
-						streams[stream]['frame']	= pre.scale(streams[stream]['frame'], streams[stream]['scale'])
-						# Detect heat on a RGB image using contour mode
-						heat, swir_det, swir_mask 	= SWIR.detectHeat(streams[stream]['frame'], stream, 'contours')
-						streams[stream]['frame'] 	= swir_det
-
-					elif stream == 'flir':
-						streams[stream]['frame']	= pre.scale(streams[stream]['frame'], streams[stream]['scale'])
-						# Cut off level indicator bar
-						streams[stream]['frame'] 	= streams[stream]['frame'][0:streams[stream]['frame'].shape[0]-30,0:streams[stream]['frame'].shape[1]]
-						# Detect heat on a RGB image using contour mode
-						heat, flir_det, flir_mask 	= FLIR.detectHeat(streams[stream]['frame'], stream,'contours')
-						streams[stream]['frame'] 	= flir_det
-				else:
-					break
-
-			if ret:
-				frame_index += 1
-
-				if mask_overlay:
-					blank = np.full((streams['rgb']['frame'].shape[0]*2,streams['rgb']['frame'].shape[1]*3,3), 0, np.uint8)
-					blank[streams['rgb']['frame'].shape[0]:streams['rgb']['frame'].shape[0]*2,0:streams['rgb']['frame'].shape[1]] 																		= rgb_mask
-					blank[streams['rgb']['frame'].shape[0]:streams['swir']['frame'].shape[0]+streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[1]:streams['swir']['frame'].shape[1]*2] 	= swir_mask
-					blank[streams['rgb']['frame'].shape[0]:streams['flir']['frame'].shape[0]+streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[1]*2:streams['flir']['frame'].shape[1]*3] 	= flir_mask
-					cv2.putText(blank, 'Speed: '+ str(round((1/speed)*1000)),	(blank.shape[1]-160,int(blank.shape[0]/2)-15),	cv2.FONT_HERSHEY_SIMPLEX,0.75,bgr.white,2,cv2.LINE_AA)
-					cv2.rectangle(blank,(streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[0]+1),	(streams['rgb']['frame'].shape[0]*2,int(blank.shape[0]+1)),		bgr.white,	2)
-					test = 1
-				else:
-					blank = np.full((streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[1]*3,3), 0, np.uint8)
-					cv2.putText(blank, 'Speed: '+ str(round((1/speed)*1000)), (blank.shape[1]-160,blank.shape[0]-15), cv2.FONT_HERSHEY_SIMPLEX,0.75,bgr.white,2,cv2.LINE_AA)
-				
-				blank[0:streams['rgb']['frame'].shape[0],0:streams['rgb']['frame'].shape[1]] 										= streams['rgb']['frame']
-				blank[0:streams['swir']['frame'].shape[0],streams['rgb']['frame'].shape[1]:streams['swir']['frame'].shape[1]*2] 	= streams['swir']['frame']
-				blank[0:streams['flir']['frame'].shape[0],streams['rgb']['frame'].shape[1]*2:streams['flir']['frame'].shape[1]*3] 	= streams['flir']['frame']
-				
-				cv2.rectangle(blank,(streams['rgb']['frame'].shape[0],-2),	(streams['rgb']['frame'].shape[0]*2,int(streams['rgb']['frame'].shape[0])+1), bgr.white, 2)
-				# Middle line change this to a line! no rectangle necessary
-				cv2.rectangle(blank,(-2,streams['rgb']['frame'].shape[0]+1),(blank.shape[1]+1,blank.shape[0]+1), bgr.white,	2)
-
-				cv2.imshow('Fire detection',blank)
-
-				# Section that handles al different key presses
-				key = cv2.waitKey(wait) & 0xFF
-
-				if key == ord('v'):
-					break
-				if key == ord('p'):
-					wait = 0
-				elif key == ord('m'):
-					mask_overlay = not mask_overlay	
-				elif key == ord('q'):
-					run = False	
-				elif key == ord(','):
-					#slower
-					if wait < 1000:
-						speed 	= speed*2
-						wait 	= speed
-				elif key == ord('.'):
-					#faster
-					if wait > 1:
-						speed 	= int(speed/2)
-						wait 	= speed
-				elif key == 81:
-					if frame_index > 1:
-						frame_index -= 2
-					for stream in streams:
-						# Very slow .. don't know why
-						vm.setFrameIndex(stream, streams[stream]['offset']+frame_index)
-					wait = 0
-				elif key == 83:
-					wait = 0
-				else:
-					wait = speed
+			if fire:
+				text_color 	= bgr.red 
 			else:
-				break
+				text_color 	= bgr.white
+
+			cv2.putText(streams[stream]['frame'], stream, (10,30), cv2.FONT_HERSHEY_DUPLEX,0.9,bgr.black,6,cv2.LINE_AA)
+			cv2.putText(streams[stream]['frame'], stream, (10,30), cv2.FONT_HERSHEY_DUPLEX,0.9,text_color,2,cv2.LINE_AA)
+			cv2.putText(streams[stream]['mask'], stream+' mask', (10,30), cv2.FONT_HERSHEY_DUPLEX,0.9,bgr.black,6,cv2.LINE_AA)
+			cv2.putText(streams[stream]['mask'], stream+' mask', (10,30), cv2.FONT_HERSHEY_DUPLEX,0.9,text_color,2,cv2.LINE_AA)
+
+		else: 
+			run = False
+
+	if ret:
+		blank = np.full(((streams['color']['frame'].shape[0]*mask)+streams['color']['frame'].shape[0],streams['color']['frame'].shape[1]*len(streams),3), 0, np.uint8)
+
+		blank[0:streams['color']['frame'].shape[0],0:streams['color']['frame'].shape[1]] 										= streams['color']['frame']
+		blank[0:streams['swir']['frame'].shape[0],streams['color']['frame'].shape[1]:streams['swir']['frame'].shape[1]*2] 	= streams['swir']['frame']
+		blank[0:streams['flir']['frame'].shape[0],streams['color']['frame'].shape[1]*2:streams['flir']['frame'].shape[1]*3] = streams['flir']['frame']
+
+
+
+		cv2.rectangle(blank,(0,0),(streams['color']['frame'].shape[0]*len(streams)-1,streams['color']['frame'].shape[0]-1),bgr.white,1)
+		cv2.rectangle(blank,(streams['color']['frame'].shape[0],0),(streams['color']['frame'].shape[0]*2-1,streams['color']['frame'].shape[0]-1),bgr.white,1)
+
+		if mask:
+			blank[streams['color']['frame'].shape[0]:streams['color']['frame'].shape[0]*2,0:streams['color']['frame'].shape[1]] 																		= streams['color']['mask']
+			blank[streams['color']['frame'].shape[0]:streams['swir']['frame'].shape[0]+streams['color']['frame'].shape[0],streams['color']['frame'].shape[1]:streams['swir']['frame'].shape[1]*2] 		= streams['swir']['mask']
+			blank[streams['color']['frame'].shape[0]:streams['flir']['frame'].shape[0]+streams['color']['frame'].shape[0],streams['color']['frame'].shape[1]*2:streams['flir']['frame'].shape[1]*3] 	= streams['flir']['mask']
+			
+			cv2.rectangle(blank,(0,streams['color']['frame'].shape[0]-1),(streams['color']['frame'].shape[0]*len(streams)-1,streams['color']['frame'].shape[0]*2-1),bgr.white,1)
+			cv2.rectangle(blank,(streams['color']['frame'].shape[0],streams['color']['frame'].shape[0]-1),(streams['color']['frame'].shape[0]*2-1,streams['color']['frame'].shape[0]*2-1),bgr.white,1)
+
+		cv2.imshow('Fire detection',blank)
+
+		key = cv2.waitKey(wait) & 0xFF
+
+		if key == ord('p'):
+			wait = 0
+		elif key == ord('m'):
+			mask = not mask
+		elif key == ord('q'):
+			run = False	
+		elif key == ord(','):
+			#slower
+			if wait < 1000:
+				speed 	= speed*2
+				wait 	= speed
+		elif key == ord('.'):
+			#faster
+			if wait > 1:
+				speed 	= int(speed/2)
+				wait 	= speed
+		elif key == 83:
+			wait = 0
+		else:
+			wait = speed
+
 
 vm.close()
 cv2.destroyAllWindows()
+
+# # Initial values
+# wait 			= 1
+# speed 			= 1
+# mask_overlay	= False
+# run 			= True
+
+# while(run):
+# 	for videoset in videosets:
+# 		streams = videosets[videoset]
+# 		# Create the videomanager
+# 		vm = VideoManager()
+
+# 		# Sync up streams by changing the frameindex to certain streams 
+# 		for stream in streams:
+# 			vm.addStream(stream, streams[stream]['filename'])
+# 			vm.setFrameIndex(stream, streams[stream]['offset'])
+
+# 		# Initialize detectors
+# 		RGB 	= RGBDetector()
+# 		SWIR 	= SWIRDetector()
+# 		FLIR 	= SWIRDetector()
+
+# 		frame_index 	= 1
+
+# 		while(run):
+# 			for stream in streams:
+				
+# 				ret, streams[stream]['frame'] 	= vm.getFrame(stream) 
+
+# 				if ret:
+# 					if stream == 'rgb':
+# 						streams[stream]['frame']	= pre.scale(streams[stream]['frame'], streams[stream]['scale'])
+# 						# Detect flames on a RGB image using contour mode
+# 						flame, rgb_det, rgb_mask 	= RGB.detectFlames(streams[stream]['frame'], stream,'contours')
+# 						streams[stream]['frame'] 	= rgb_det
+
+# 					elif stream == 'swir':
+# 						streams[stream]['frame']	= pre.scale(streams[stream]['frame'], streams[stream]['scale'])
+# 						# Detect heat on a RGB image using contour mode
+# 						heat, swir_det, swir_mask 	= SWIR.detectHeat(streams[stream]['frame'], stream, 'contours')
+# 						streams[stream]['frame'] 	= swir_det
+
+# 					elif stream == 'flir':
+# 						streams[stream]['frame']	= pre.scale(streams[stream]['frame'], streams[stream]['scale'])
+# 						# Cut off level indicator bar
+# 						streams[stream]['frame'] 	= streams[stream]['frame'][0:streams[stream]['frame'].shape[0]-30,0:streams[stream]['frame'].shape[1]]
+# 						# Detect heat on a RGB image using contour mode
+# 						heat, flir_det, flir_mask 	= FLIR.detectHeat(streams[stream]['frame'], stream,'contours')
+# 						streams[stream]['frame'] 	= flir_det
+# 				else:
+# 					break
+
+# 			if ret:
+# 				frame_index += 1
+
+# 				if mask_overlay:
+# 					blank = np.full((streams['rgb']['frame'].shape[0]*2,streams['rgb']['frame'].shape[1]*3,3), 0, np.uint8)
+# 					blank[streams['rgb']['frame'].shape[0]:streams['rgb']['frame'].shape[0]*2,0:streams['rgb']['frame'].shape[1]] 																		= rgb_mask
+# 					blank[streams['rgb']['frame'].shape[0]:streams['swir']['frame'].shape[0]+streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[1]:streams['swir']['frame'].shape[1]*2] 	= swir_mask
+# 					blank[streams['rgb']['frame'].shape[0]:streams['flir']['frame'].shape[0]+streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[1]*2:streams['flir']['frame'].shape[1]*3] 	= flir_mask
+# 					cv2.putText(blank, 'Speed: '+ str(round((1/speed)*1000)),	(blank.shape[1]-160,int(blank.shape[0]/2)-15),	cv2.FONT_HERSHEY_SIMPLEX,0.75,bgr.white,2,cv2.LINE_AA)
+# 					cv2.rectangle(blank,(streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[0]+1),	(streams['rgb']['frame'].shape[0]*2,int(blank.shape[0]+1)),		bgr.white,	2)
+# 					test = 1
+# 				else:
+# 					blank = np.full((streams['rgb']['frame'].shape[0],streams['rgb']['frame'].shape[1]*3,3), 0, np.uint8)
+# 					cv2.putText(blank, 'Speed: '+ str(round((1/speed)*1000)), (blank.shape[1]-160,blank.shape[0]-15), cv2.FONT_HERSHEY_SIMPLEX,0.75,bgr.white,2,cv2.LINE_AA)
+				
+# 				blank[0:streams['rgb']['frame'].shape[0],0:streams['rgb']['frame'].shape[1]] 										= streams['rgb']['frame']
+# 				blank[0:streams['swir']['frame'].shape[0],streams['rgb']['frame'].shape[1]:streams['swir']['frame'].shape[1]*2] 	= streams['swir']['frame']
+# 				blank[0:streams['flir']['frame'].shape[0],streams['rgb']['frame'].shape[1]*2:streams['flir']['frame'].shape[1]*3] 	= streams['flir']['frame']
+				
+# 				cv2.rectangle(blank,(streams['rgb']['frame'].shape[0],-2),	(streams['rgb']['frame'].shape[0]*2,int(streams['rgb']['frame'].shape[0])+1), bgr.white, 2)
+# 				# Middle line change this to a line! no rectangle necessary
+# 				cv2.rectangle(blank,(-2,streams['rgb']['frame'].shape[0]+1),(blank.shape[1]+1,blank.shape[0]+1), bgr.white,	2)
+
+# 				cv2.imshow('Fire detection',blank)
+
+# 				# Section that handles al different key presses
+# 				key = cv2.waitKey(wait) & 0xFF
+
+# 				if key == ord('v'):
+# 					break
+# 				if key == ord('p'):
+# 					wait = 0
+# 				elif key == ord('m'):
+# 					mask_overlay = not mask_overlay	
+# 				elif key == ord('q'):
+# 					run = False	
+# 				elif key == ord(','):
+# 					#slower
+# 					if wait < 1000:
+# 						speed 	= speed*2
+# 						wait 	= speed
+# 				elif key == ord('.'):
+# 					#faster
+# 					if wait > 1:
+# 						speed 	= int(speed/2)
+# 						wait 	= speed
+# 				elif key == 81:
+# 					if frame_index > 1:
+# 						frame_index -= 2
+# 					for stream in streams:
+# 						# Very slow .. don't know why
+# 						vm.setFrameIndex(stream, streams[stream]['offset']+frame_index)
+# 					wait = 0
+# 				elif key == 83:
+# 					wait = 0
+# 				else:
+# 					wait = speed
+# 			else:
+# 				break
+
